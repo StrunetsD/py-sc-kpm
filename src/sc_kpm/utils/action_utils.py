@@ -179,3 +179,33 @@ def finish_action_with_status(action_node: ScAddr, is_success: bool = True) -> N
     status = ActionStatus.ACTION_FINISHED_SUCCESSFULLY if is_success else ActionStatus.ACTION_FINISHED_UNSUCCESSFULLY
     finish_action(action_node, status)
     finish_action(action_node, ActionStatus.ACTION_FINISHED)
+
+
+def execute_agent_tg_bot(
+        arguments: Dict[ScAddr, IsDynamic],
+        concepts: List[Idtf],
+        initiation: Idtf = ActionStatus.ACTION_INITIATED,
+        reaction: Idtf = ActionStatus.ACTION_FINISHED_SUCCESSFULLY,
+        wait_time: float = COMMON_WAIT_TIME,
+) -> Tuple[ScAddr, bool]:
+    action = call_agent_tg_bot(arguments, concepts, initiation)
+    wait_agent(wait_time, action)
+    result = check_connector(sc_type.VAR_PERM_POS_ARC, ScKeynodes[reaction], action)
+    return action, result
+
+
+def call_agent_tg_bot(
+        arguments: Dict[ScAddr, IsDynamic],
+        concepts: List[Idtf],
+        initiation: Idtf = ActionStatus.ACTION_INITIATED,
+) -> ScAddr:
+    question = create_action(*concepts)
+    construction = ScConstruction()
+    construction.create_node(sc_type.CONST_NODE, ScAlias.ACTION_NODE)
+    user = client.create_elements(construction)[0]
+    nrel_authors = ScKeynodes.resolve('nrel_authors', sc_type.CONST_NODE_NON_ROLE)
+    generate_non_role_relation(question, user, nrel_authors)
+    add_action_arguments(question, arguments)
+    call_action(question, initiation)
+    return question
+
